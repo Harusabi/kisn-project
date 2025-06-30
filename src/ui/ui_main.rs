@@ -1,0 +1,55 @@
+use bevy::ecs::system::ResMut;
+use bevy_egui::EguiContexts;
+use egui::{CornerRadius, Margin, frame};
+
+use crate::OccupiedScreenSpace;
+
+pub fn ui_example_system(
+    mut contexts: EguiContexts,
+    mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
+) {
+    let ctx = contexts.ctx_mut();
+
+    let _frame_top = frame::Frame::new()
+        .corner_radius(CornerRadius::same(5))
+        .fill(egui::Color32::WHITE)
+        .inner_margin(Margin::same(5));
+
+    occupied_screen_space.top = egui::TopBottomPanel::top("top_panel")
+        .resizable(false)
+        .show(ctx, |ui| {
+            // TODO - Revisar el cambio de color de los elementos
+            // let style = ui.style().clone();
+            // let mut style_mut = style.clone();
+
+            // style_mut.visuals.widgets.inactive.bg_fill = egui::Color32::WHITE;
+
+            ui.set_height(10.0);
+            ctx.set_visuals(egui::Visuals::light());
+            let mut styles = (*ctx.style()).clone();
+
+            styles.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(200, 200, 200);
+            ctx.set_visuals(egui::Visuals {
+                window_fill: egui::Color32::GREEN,
+                ..Default::default()
+            });
+            ui.columns(8, |columns| {
+                columns[0].label("Column 1");
+                if columns[7].button("Quit").clicked() {
+                    std::process::exit(0);
+                }
+            });
+        })
+        .response
+        .rect
+        .height();
+    // occupied_screen_space.bottom = egui::TopBottomPanel::bottom("bottom_panel")
+    //     .resizable(true)
+    //     .show(ctx, |ui| {
+    //         ui.label("Bottom resizeable panel");
+    //         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+    //     })
+    //     .response
+    //     .rect
+    //     .height();
+}
