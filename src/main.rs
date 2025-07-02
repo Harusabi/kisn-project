@@ -1,13 +1,13 @@
-mod scene;
 mod ui;
 
-use bevy::{prelude::*, window::PrimaryWindow, winit::WinitSettings};
+use bevy::{prelude::*, winit::WinitSettings};
 use bevy_egui::{EguiContextPass, EguiPlugin};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use ui::ui_main::ui_example_system;
 
 #[derive(Default, Resource)]
+#[allow(dead_code)]
 struct OccupiedScreenSpace {
     left: f32,
     top: f32,
@@ -19,12 +19,6 @@ const CAMERA_TARGET: Vec3 = Vec3::ZERO;
 
 #[derive(Resource, Deref, DerefMut)]
 struct OriginalCameraTransform(Transform);
-
-#[derive(Component)]
-struct CameraController {
-    sensitivity: f32,
-    enabled: bool,
-}
 
 fn main() {
     App::new()
@@ -76,34 +70,4 @@ fn setup_system(
         Transform::from_xyz(3.0, 6.0, 0.0),
         PanOrbitCamera::default(),
     ));
-}
-
-fn _update_camera_transform_system(
-    occupied_screen_space: Res<OccupiedScreenSpace>,
-    original_camera_transform: Res<OriginalCameraTransform>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    mut camera_query: Query<(&Projection, &mut Transform)>,
-) -> Result {
-    let (camera_projection, mut transform) = match camera_query.single_mut() {
-        Ok((Projection::Perspective(projection), transform)) => (projection, transform),
-        _ => unreachable!(),
-    };
-
-    let distance_to_target = (CAMERA_TARGET - original_camera_transform.translation).length();
-    let frustum_height = 2.0 * distance_to_target * (camera_projection.fov * 0.5).tan();
-    let frustum_width = frustum_height * camera_projection.aspect_ratio;
-
-    let window = windows.single()?;
-
-    let left_taken = occupied_screen_space.left / window.width();
-    let right_taken = occupied_screen_space.right / window.width();
-    let top_taken = occupied_screen_space.top / window.height();
-    let bottom_taken = occupied_screen_space.bottom / window.height();
-    transform.translation = original_camera_transform.translation
-        + transform.rotation.mul_vec3(Vec3::new(
-            (right_taken - left_taken) * frustum_width * 0.5,
-            (top_taken - bottom_taken) * frustum_height * 0.5,
-            0.0,
-        ));
-    Ok(())
 }

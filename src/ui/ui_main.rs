@@ -18,22 +18,17 @@ pub fn ui_example_system(
     occupied_screen_space.top = egui::TopBottomPanel::top("top_panel")
         .resizable(false)
         .show(ctx, |ui| {
-            // TODO - Revisar el cambio de color de los elementos
-            // let style = ui.style().clone();
-            // let mut style_mut = style.clone();
-
-            // style_mut.visuals.widgets.inactive.bg_fill = egui::Color32::WHITE;
-
-            ui.set_height(10.0);
-            ctx.set_visuals(egui::Visuals::light());
+            // ui.set_height(10.0);
+            // ctx.set_visuals(egui::Visuals::light());
             let mut styles = (*ctx.style()).clone();
 
-            styles.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(200, 200, 200);
-            ctx.set_visuals(egui::Visuals {
-                window_fill: egui::Color32::GREEN,
-                ..Default::default()
-            });
+            styles.visuals.window_fill = egui::Color32::WHITE;
+            // ctx.set_visuals(egui::Visuals {
+            //     window_fill: egui::Color32::GREEN,
+            //     ..Default::default()
+            // });
             ui.columns(8, |columns| {
+                columns[7].set_style(styles);
                 columns[0].label("Column 1");
                 if columns[7].button("Quit").clicked() {
                     std::process::exit(0);
