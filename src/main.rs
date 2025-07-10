@@ -2,8 +2,8 @@ mod ui;
 
 use bevy::{prelude::*, winit::WinitSettings};
 use bevy_egui::{EguiContextPass, EguiPlugin};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use ui::disable_camera_ui;
 use ui::ui_main::ui_example_system;
 
 #[derive(Default, Resource)]
@@ -27,11 +27,11 @@ fn main() {
         .add_plugins(EguiPlugin {
             enable_multipass_for_primary_context: true,
         })
-        .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(PanOrbitCameraPlugin)
         .init_resource::<OccupiedScreenSpace>()
         .add_systems(Startup, setup_system)
-        .add_systems(EguiContextPass, (ui_example_system,))
+        .add_systems(Update, disable_camera_ui)
+        .add_systems(EguiContextPass, ui_example_system)
         .run();
 }
 

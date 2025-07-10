@@ -1,6 +1,6 @@
 use bevy::ecs::system::ResMut;
 use bevy_egui::EguiContexts;
-use egui::{CornerRadius, Margin, frame};
+use egui::{CollapsingHeader, CornerRadius, Margin, frame};
 
 use crate::OccupiedScreenSpace;
 
@@ -28,11 +28,19 @@ pub fn ui_example_system(
             //     ..Default::default()
             // });
             ui.columns(8, |columns| {
-                columns[7].set_style(styles);
+                // columns[7].set_style(styles);
                 columns[0].label("Column 1");
-                if columns[7].button("Quit").clicked() {
-                    std::process::exit(0);
-                }
+                CollapsingHeader::new("Collapse")
+                    .default_open(false)
+                    .show_background(false)
+                    .icon(|_, _, _| {})
+                    .show(&mut columns[1], |ui| {
+                        ui.label("This is the content of column 2.");
+                    });
+
+                // if columns[7].button("Quit").clicked() {
+                //     std::process::exit(0);
+                // }
             });
         })
         .response
