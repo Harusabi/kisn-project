@@ -2,7 +2,8 @@ use bevy::ecs::system::Query;
 use bevy_egui::EguiContexts;
 use bevy_panorbit_camera::PanOrbitCamera;
 
-pub mod ui_main;
+pub mod ui_left;
+pub mod ui_top;
 
 // fn show_ui_system(world: &mut World) {
 //     let Ok(egui_context) = world
@@ -18,7 +19,7 @@ pub mod ui_main;
 //     });
 // }
 
-pub fn disable_camera_ui(mut context: EguiContexts, mut camera_query: Query<&mut PanOrbitCamera>) {
+pub fn _disable_camera_ui(mut context: EguiContexts, mut camera_query: Query<&mut PanOrbitCamera>) {
     // This function is intentionally left empty.
     // It can be used to disable camera UI if needed in the future.
     let ctx = context.ctx_mut();

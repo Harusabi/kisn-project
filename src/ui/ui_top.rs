@@ -4,7 +4,7 @@ use egui::{CollapsingHeader, CornerRadius, Margin, frame};
 
 use crate::OccupiedScreenSpace;
 
-pub fn ui_example_system(
+pub fn ui_top_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
 ) {
@@ -46,13 +46,4 @@ pub fn ui_example_system(
         .response
         .rect
         .height();
-    // occupied_screen_space.bottom = egui::TopBottomPanel::bottom("bottom_panel")
-    //     .resizable(true)
-    //     .show(ctx, |ui| {
-    //         ui.label("Bottom resizeable panel");
-    //         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-    //     })
-    //     .response
-    //     .rect
-    //     .height();
 }
