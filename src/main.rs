@@ -5,7 +5,7 @@ use bevy_egui::{EguiContextPass, EguiPlugin};
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-// use ui::disable_camera_ui;
+use ui::disable_camera_ui;
 use ui::ui_left::show_ui_system;
 use ui::ui_top::ui_top_panel;
 
@@ -28,8 +28,16 @@ struct OriginalCameraTransform(Transform);
 fn main() {
     App::new()
         .insert_resource(WinitSettings::desktop_app())
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Kisn Project".to_string(),
+                resolution: (1024.0, 768.0).into(),
+                resizable: true,
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugins((
-            DefaultPlugins,
             PanOrbitCameraPlugin,
             InfiniteGridPlugin,
             DefaultInspectorConfigPlugin,
@@ -40,8 +48,8 @@ fn main() {
         .insert_resource(UiState::new())
         .init_resource::<OccupiedScreenSpace>()
         .add_systems(Startup, setup_system)
-        // .add_systems(Update, disable_camera_ui)
-        .add_systems(EguiContextPass, (show_ui_system))
+        .add_systems(Update, disable_camera_ui)
+        .add_systems(EguiContextPass, show_ui_system)
         .register_type::<Option<Handle<Image>>>()
         .register_type::<AlphaMode>()
         .run();

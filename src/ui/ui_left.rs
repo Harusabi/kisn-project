@@ -17,27 +17,9 @@ use bevy_inspector_egui::{
     },
 };
 
+use egui::Rect;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use transform_gizmo_egui::{Gizmo, GizmoConfig, GizmoExt, GizmoOrientation};
-
-// fn main() {
-//     App::new()
-//         .add_plugins(DefaultPlugins)
-//         // .add_plugins(bevy_framepace::FramepacePlugin) // reduces input lag
-//         .add_plugins(bevy_egui::EguiPlugin {
-//             enable_multipass_for_primary_context: true,
-//         })
-//         .add_plugins(DefaultInspectorConfigPlugin)
-//         // .add_plugins(bevy_mod_picking::plugins::DefaultPickingPlugins)
-//         .insert_resource(UiState::new())
-//         .add_systems(Startup, setup)
-//         .add_systems(EguiContextPass, show_ui_system)
-//         // .add_systems(Update, auto_add_raycast_target)
-//         // .add_systems(Update, handle_pick_events)
-//         .register_type::<Option<Handle<Image>>>()
-//         .register_type::<AlphaMode>()
-//         .run();
-// }
 
 /*
 fn auto_add_raycast_target(
@@ -138,10 +120,16 @@ impl UiState {
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut tab_viewer);
     }
+    pub fn get_state(&self) -> &DockState<EguiWindow> {
+        &self.state
+    }
+    pub fn get_viewport_rect(&mut self) -> &Rect {
+        &self.viewport_rect
+    }
 }
 
 #[derive(Debug)]
-enum EguiWindow {
+pub enum EguiWindow {
     GameView,
     Hierarchy,
     Resources,
