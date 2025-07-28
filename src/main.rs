@@ -1,29 +1,22 @@
-mod ui;
-
 use bevy::{prelude::*, winit::WinitSettings};
 use bevy_egui::{EguiContextPass, EguiPlugin};
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use ui::disable_camera_ui;
-use ui::ui_left::show_ui_system;
-use ui::ui_top::ui_top_panel;
 
-use crate::ui::ui_left::UiState;
+mod ui;
+use ui::disable_camera_ui;
+use ui::ui_dock::UiState;
+use ui::ui_dock::show_ui_system;
 
 #[derive(Default, Resource)]
-// #[allow(dead_code)]
+#[allow(dead_code)]
 struct OccupiedScreenSpace {
     _left: f32,
     top: f32,
     _right: f32,
     _bottom: f32,
 }
-
-const CAMERA_TARGET: Vec3 = Vec3::ZERO;
-
-#[derive(Resource, Deref, DerefMut)]
-struct OriginalCameraTransform(Transform);
 
 fn main() {
     App::new()
@@ -68,12 +61,14 @@ fn setup_system(
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
     ));
 
-    commands.spawn((
-        Name::new("Cubo"),
-        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-        MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
-        Transform::from_xyz(0.0, 0.5, 0.0),
-    ));
+    let bundle = Name::new("Cubo");
+    commands.spawn(bundle).with_children(|parent| {
+        parent.spawn((
+            Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+            MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+            Transform::from_xyz(0.0, 0.5, 0.0),
+        ));
+    });
 
     commands.spawn((
         PointLight {
@@ -83,11 +78,6 @@ fn setup_system(
         },
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
-
-    let camera_pos = Vec3::new(-10.0, 10.0, 30.0);
-    let camera_transform =
-        Transform::from_translation(camera_pos).looking_at(CAMERA_TARGET, Vec3::Y);
-    commands.insert_resource(OriginalCameraTransform(camera_transform));
 
     commands.spawn((
         Transform::from_xyz(3.0, 6.0, 0.0),

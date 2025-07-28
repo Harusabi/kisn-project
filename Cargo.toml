@@ -11,17 +11,10 @@ bevy_infinite_grid = "0.15.0"
 bevy_panorbit_camera = "0.26.0"
 egui = "0.31.1"
 egui_dock = "0.16.0"
-transform-gizmo-egui = "0.5.0"
 bevy_math = { version = "0.16.1", features = ["mint"] }
-
-[target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"
-ar = "x86_64-w64-mingw32-ar"
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-[target.'cfg(windows)']
-rustflags = ["-C", "target-feature=+crt-static"]

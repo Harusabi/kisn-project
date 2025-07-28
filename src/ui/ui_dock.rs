@@ -2,10 +2,8 @@ use std::any::TypeId;
 
 use bevy::{
     asset::{ReflectAsset, UntypedAssetId},
-    math::{DQuat, DVec3},
     prelude::*,
     reflect::TypeRegistry,
-    render::camera::CameraProjection,
     window::PrimaryWindow,
 };
 use bevy_inspector_egui::{
@@ -17,9 +15,7 @@ use bevy_inspector_egui::{
     },
 };
 
-use egui::Rect;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
-use transform_gizmo_egui::{Gizmo, GizmoConfig, GizmoExt, GizmoOrientation};
 
 /*
 fn auto_add_raycast_target(
@@ -56,9 +52,6 @@ fn handle_pick_events(
 }
 */
 
-#[derive(Component)]
-struct MainCamera;
-
 pub fn show_ui_system(world: &mut World) {
     let Ok(egui_context) = world
         .query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
@@ -86,25 +79,21 @@ pub struct UiState {
     viewport_rect: egui::Rect,
     selected_entities: SelectedEntities,
     selection: InspectorSelection,
-    gizmo: Gizmo,
 }
 
 impl UiState {
     pub fn new() -> Self {
         let mut state = DockState::new(vec![EguiWindow::GameView]);
         let tree = state.main_surface_mut();
-        let [game, _inspector] =
-            tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
-        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![EguiWindow::Hierarchy]);
-        let [_game, _bottom] =
-            tree.split_below(game, 0.8, vec![EguiWindow::Resources, EguiWindow::Assets]);
+        let [game, _] = tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
+        let [game, _] = tree.split_left(game, 0.2, vec![EguiWindow::Hierarchy]);
+        let [_, _] = tree.split_below(game, 0.8, vec![EguiWindow::Resources, EguiWindow::Assets]);
 
         Self {
             state,
             selected_entities: SelectedEntities::default(),
             selection: InspectorSelection::Entities,
             viewport_rect: egui::Rect::NOTHING,
-            gizmo: Gizmo::default(),
         }
     }
 
@@ -114,21 +103,27 @@ impl UiState {
             viewport_rect: &mut self.viewport_rect,
             selected_entities: &mut self.selected_entities,
             selection: &mut self.selection,
-            gizmo: &mut self.gizmo,
+            mouse_over_gameview: &mut false,
         };
         DockArea::new(&mut self.state)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut tab_viewer);
     }
-    pub fn get_state(&self) -> &DockState<EguiWindow> {
-        &self.state
-    }
-    pub fn get_viewport_rect(&mut self) -> &Rect {
-        &self.viewport_rect
+    pub fn is_gameview_active(&mut self) -> bool {
+        if let Some(node) = self.state.get_surface_mut(egui_dock::SurfaceIndex(0)) {
+            // println!("Nodes interables: {:#?}", nodes_interables.iter_all_tabs());
+            if let Some(tree_node) = node.node_tree_mut() {
+                if let Some((_, tab_active)) = tree_node.find_active_focused() {
+                    // println!("Active tab: {tab_active:?}");
+                    return tab_active == &EguiWindow::GameView;
+                }
+            }
+        }
+        false
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum EguiWindow {
     GameView,
     Hierarchy,
@@ -143,7 +138,7 @@ struct TabViewer<'a> {
     selected_entities: &'a mut SelectedEntities,
     selection: &'a mut InspectorSelection,
     viewport_rect: &'a mut egui::Rect,
-    gizmo: &'a mut Gizmo,
+    mouse_over_gameview: &'a mut bool,
 }
 
 impl egui_dock::TabViewer for TabViewer<'_> {
@@ -156,8 +151,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
         match window {
             EguiWindow::GameView => {
                 *self.viewport_rect = ui.clip_rect();
-
-                // draw_gizmo(ui, self.gizmo, self.world, self.selected_entities);
             }
             EguiWindow::Hierarchy => {
                 let selected = hierarchy_ui(self.world, ui, self.selected_entities);
@@ -202,56 +195,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
     fn clear_background(&self, window: &Self::Tab) -> bool {
         !matches!(window, EguiWindow::GameView)
-    }
-}
-
-#[allow(unused)]
-fn draw_gizmo(
-    ui: &mut egui::Ui,
-    gizmo: &mut Gizmo,
-    world: &mut World,
-    selected_entities: &SelectedEntities,
-) {
-    let (cam_transform, projection) = world
-        .query_filtered::<(&GlobalTransform, &Projection), With<MainCamera>>()
-        .single(world)
-        .expect("Camera not found");
-    let view_matrix = Mat4::from(cam_transform.affine().inverse());
-    let projection_matrix = projection.get_clip_from_view();
-
-    if selected_entities.len() != 1 {
-        #[allow(clippy::needless_return)]
-        return;
-    }
-
-    for selected in selected_entities.iter() {
-        let Some(transform) = world.get::<Transform>(selected) else {
-            continue;
-        };
-        let model_matrix = transform.compute_matrix();
-
-        gizmo.update_config(GizmoConfig {
-            view_matrix: view_matrix.as_dmat4().into(),
-            projection_matrix: projection_matrix.as_dmat4().into(),
-            orientation: GizmoOrientation::Local,
-            ..Default::default()
-        });
-        let transform = transform_gizmo_egui::math::Transform::from_scale_rotation_translation(
-            transform.scale.as_dvec3(),
-            transform.rotation.as_dquat(),
-            transform.translation.as_dvec3(),
-        );
-        let Some((result, transforms)) = gizmo.interact(ui, &[transform]) else {
-            continue;
-        };
-        let new = transforms[0];
-
-        let mut transform = world.get_mut::<Transform>(selected).unwrap();
-        *transform = Transform {
-            translation: DVec3::from(new.translation).as_vec3(),
-            rotation: DQuat::from_array(<[f64; 4]>::from(new.rotation)).as_quat(),
-            scale: DVec3::from(new.scale).as_vec3(),
-        };
     }
 }
 
@@ -324,127 +267,3 @@ fn select_asset(
         });
     }
 }
-
-// fn setup(
-//     mut commands: Commands,
-//     mut meshes: ResMut<Assets<Mesh>>,
-//     mut materials: ResMut<Assets<StandardMaterial>>,
-// ) {
-//     let box_size = 2.0;
-//     let box_thickness = 0.15;
-//     let box_offset = (box_size + box_thickness) / 2.0;
-
-//     // left - red
-//     let mut transform = Transform::from_xyz(-box_offset, box_offset, 0.0);
-//     transform.rotate(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
-
-//     commands.spawn((
-//         Mesh3d(meshes.add(Cuboid::new(box_size, box_thickness, box_size))),
-//         MeshMaterial3d(materials.add(StandardMaterial {
-//             base_color: Color::srgb(0.63, 0.065, 0.05),
-//             ..Default::default()
-//         })),
-//         transform,
-//     ));
-//     // right - green
-//     let mut transform = Transform::from_xyz(box_offset, box_offset, 0.0);
-//     transform.rotate(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
-//     commands.spawn((
-//         Mesh3d(meshes.add(Cuboid::new(box_size, box_thickness, box_size))),
-//         transform,
-//         MeshMaterial3d(materials.add(StandardMaterial {
-//             base_color: Color::srgb(0.14, 0.45, 0.091),
-//             ..Default::default()
-//         })),
-//     ));
-//     // bottom - white
-//     commands.spawn((
-//         Mesh3d(meshes.add(Cuboid::new(
-//             box_size + 2.0 * box_thickness,
-//             box_thickness,
-//             box_size,
-//         ))),
-//         MeshMaterial3d(materials.add(StandardMaterial {
-//             base_color: Color::srgb(0.725, 0.71, 0.68),
-//             ..Default::default()
-//         })),
-//     ));
-//     // top - white
-//     let transform = Transform::from_xyz(0.0, 2.0 * box_offset, 0.0);
-//     commands.spawn((
-//         Mesh3d(meshes.add(Cuboid::new(
-//             box_size + 2.0 * box_thickness,
-//             box_thickness,
-//             box_size,
-//         ))),
-//         transform,
-//         MeshMaterial3d(materials.add(StandardMaterial {
-//             base_color: Color::srgb(0.725, 0.71, 0.68),
-//             ..Default::default()
-//         })),
-//     ));
-//     // back - white
-//     let mut transform = Transform::from_xyz(0.0, box_offset, -box_offset);
-//     transform.rotate(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
-//     commands.spawn((
-//         Mesh3d(meshes.add(Cuboid::new(
-//             box_size + 2.0 * box_thickness,
-//             box_thickness,
-//             box_size + 2.0 * box_thickness,
-//         ))),
-//         transform,
-//         MeshMaterial3d(materials.add(StandardMaterial {
-//             base_color: Color::srgb(0.725, 0.71, 0.68),
-//             ..Default::default()
-//         })),
-//     ));
-
-//     // ambient light
-//     commands.insert_resource(AmbientLight {
-//         color: Color::WHITE,
-//         brightness: 0.02,
-//         ..default()
-//     });
-//     // top light
-//     commands
-//         .spawn((
-//             Mesh3d(meshes.add(Plane3d::default().mesh().size(0.4, 0.4))),
-//             Transform::from_matrix(Mat4::from_scale_rotation_translation(
-//                 Vec3::ONE,
-//                 Quat::from_rotation_x(std::f32::consts::PI),
-//                 Vec3::new(0.0, box_size + 0.5 * box_thickness, 0.0),
-//             )),
-//             MeshMaterial3d(materials.add(StandardMaterial {
-//                 base_color: Color::WHITE,
-//                 emissive: LinearRgba::WHITE * 100.0,
-//                 ..Default::default()
-//             })),
-//         ))
-//         .with_children(|builder| {
-//             builder.spawn((
-//                 PointLight {
-//                     color: Color::WHITE,
-//                     intensity: 25000.0,
-//                     ..Default::default()
-//                 },
-//                 Transform::from_translation((box_thickness + 0.05) * Vec3::Y),
-//             ));
-//         });
-//     // directional light
-//     commands.spawn((
-//         DirectionalLight {
-//             illuminance: 2000.0,
-//             ..default()
-//         },
-//         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 2.0)),
-//     ));
-
-//     // camera
-//     commands.spawn((
-//         Camera3d::default(),
-//         Transform::from_xyz(0.0, box_offset, 4.0)
-//             .looking_at(Vec3::new(0.0, box_offset, 0.0), Vec3::Y),
-//         MainCamera,
-//         // PickRaycastSource,
-//     ));
-// }
